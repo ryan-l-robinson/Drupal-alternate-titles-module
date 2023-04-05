@@ -1,0 +1,14 @@
+{
+  "name": "ryan_robinson/alternate_titles",
+  "type": "drupal-module",
+  "description": "Provides alternate titles in a table view",
+  "keywords": [
+    "Drupal",
+    "module"
+  ],
+  "license": "GPL-2.0+",
+  "require": {
+    "drupal/core": "^9.0",
+    "php": "^8.0"
+  }
+}

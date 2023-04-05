@@ -1,0 +1,79 @@
+<?php
+
+use Drupal\node\Entity\Node;
+use Drupal\views\ResultRow;
+use Drupal\views\ViewExecutable;
+
+/**
+ * Sort the database titles (normative and alternative) in ascending order.
+ */
+function _alternate_titles_sort_alt_titles($a, $b) {
+    //If there are no computed titles, which indicate a failure, the item will be sorted by the primary title instead
+    $a_title = isset($a->node__field_computed_titles_field_computed_titles_value) ? $a->node__field_computed_titles_field_computed_titles_value : $a->_entity->get('title')->getString();
+    $b_title = isset($b->node__field_computed_titles_field_computed_titles_value) ? $b->node__field_computed_titles_field_computed_titles_value : $b->_entity->get('title')->getString();
+    return strcasecmp($a_title,$b_title);
+}
+
+/** 
+ * Implements hook_views_post_execute
+ * 
+ * Sorts table views alphabetically including by alternate title
+ */
+function alternate_titles_views_post_execute(ViewExecutable $view) {
+    if ($view->style_plugin->getPluginId() == 'alternate_titles') {
+        uasort($view->result, '_alternate_titles_sort_alt_titles');
+    }
+}
+
+/**
+ * Helper function to update the computed titles of the specified entity
+ */
+function _alternate_titles_update_computed_titles(\Drupal\Core\Entity\EntityInterface $entity) {
+    if ($entity->hasField('field_computed_titles') && $entity->hasField('field_alternate_title')) {
+        $primary = $entity->get('title');
+        $alts = $entity->get('field_alternate_title');
+        $computed = $entity->get('field_computed_titles');
+        //Set the first spot in computed to the primary title, if it doesn't already match
+        if ($computed->first() !== $primary) {
+            $computed->set(0,$primary->getString());
+        }
+        //Remove anything else in computed
+        //Note: counting down instead of up because each time an item is removed, the remaining items are rekeyed, which would make higher indexes fail
+        for($k = $computed->count() - 1; $k > 0; $k--) {
+            $computed->removeItem($k);
+        }
+        //Add everything in alternate
+        foreach($alts->getIterator() as $alt) {
+            $computed->appendItem($alt->getString());
+        }
+        $entity->values['field_computed_titles'] = $computed;
+    }
+    return $entity;
+}
+
+/**
+ * Implements hook_node_presave
+ */
+function alternate_titles_node_presave(\Drupal\Core\Entity\EntityInterface $entity) {
+    $entity = _alternate_titles_update_computed_titles($entity);
+}
+
+/**
+ * Implements hook_cron
+ * Backfills all the existing nodes.
+ * 
+ * This can be removed after running through all node once, as all needed updates after that will be done on node update. 
+ */
+function alternate_titles_cron() {
+    //Query for all nodes where the computed titles field is still empty
+    //TODO: may need to update this query to handle distinction between the field not existing (shouldn't do anything) and the field existing but empty (continue with update)
+    $query = \Drupal::entityQuery('node')
+        ->notExists('field_computed_titles')
+        ->range(0,50)
+        ->accessCheck(TRUE);
+    //Pass each to the update function and save them
+    foreach($query->execute() as $nid) {
+        $node = _alternate_titles_update_computed_titles(Node::load($nid));
+        $node->save();
+    }
+}
