@@ -1,4 +1,4 @@
-# Drupal Module: Alternate Titles module
+# Drupal Module: Alternate Titles
 
 This module provides a view mode that shows alternate titles for content within a table, sorted alphabetically alongside the primary title. This includes updating the computed titles field when content is saved.
 
