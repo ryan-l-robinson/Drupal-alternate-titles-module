@@ -1,4 +1,8 @@
-# Drupal Module: Alternate Titles
+## Migration
+
+This module has been moved to [my Codeberg](https://codeberg.org/ryanrobinson/drupal-module-alternate-titles).
+
+## Overview
 
 This module provides a view mode that shows alternate titles for content within a table, sorted alphabetically alongside the primary title. This includes updating the computed titles field when content is saved.
 
